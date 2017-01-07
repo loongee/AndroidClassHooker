@@ -1,15 +1,21 @@
 package com.loongee.logger
 
-import com.android.build.api.transform.*
-import com.android.build.gradle.internal.pipeline.TransformManager
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
+import com.android.build.api.transform.*
+import com.android.build.gradle.internal.pipeline.TransformManager
 
-public class LoggerTransform extends Transform {
+public class HookerTransform extends Transform {
+    private String androidDependencyPath
+
+    public HookerTransform(android) {
+        androidDependencyPath = android.sdkDirectory.absolutePath + "/platforms/" +
+                android.compileSdkVersion + "/android.jar"
+    }
 
     @Override
     String getName() {
-        return "LoggerTransform"
+        return "Hooker"
     }
 
     @Override
@@ -24,22 +30,33 @@ public class LoggerTransform extends Transform {
 
     @Override
     boolean isIncremental() {
-        return false
+        return true
     }
 
     @Override
     void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
-        Injector.printRules()
+        Injector injector = new Injector()
+        if (HookerConfigExtension.getDefault().verbose) {
+            println 'android sdk location: ' + androidDependencyPath
+            HookerConfigExtension.getDefault().printRules()
+        }
+        if (androidDependencyPath != null) {
+            injector.addJar(androidDependencyPath)
+        }
+        def pathList = []
         transformInvocation.inputs.each { TransformInput input ->
             input.directoryInputs.each { DirectoryInput directoryInput ->
-                Injector.injectDir(directoryInput.file.absolutePath)
                 def dest = transformInvocation.getOutputProvider().getContentLocation(directoryInput.name,
                         directoryInput.contentTypes,
                         directoryInput.scopes,
                         Format.DIRECTORY)
 
+                if (HookerConfigExtension.getDefault().verbose) {
+                    println(directoryInput.file.absolutePath + '---->' + dest.absolutePath)
+                }
                 FileUtils.copyDirectory(directoryInput.file, dest)
-                println(directoryInput.file.absolutePath + '---->' + dest)
+                pathList.add(dest)
+                injector.addDir(dest.absolutePath)
             }
 
             input.jarInputs.each { JarInput jarInput ->
@@ -52,7 +69,18 @@ public class LoggerTransform extends Transform {
                 def dest = transformInvocation.getOutputProvider().getContentLocation(jarName + md5Name,
                         jarInput.contentTypes, jarInput.scopes, Format.JAR)
                 FileUtils.copyFile(jarInput.file, dest)
-                println(jarInput.file.absolutePath + '---->' + dest)
+                if (HookerConfigExtension.getDefault().verbose) {
+                    println(jarInput.file.absolutePath + '---->' + dest)
+                }
+                pathList.add(dest)
+                injector.addJar(dest.absolutePath)
+            }
+        }
+        pathList.each { File dest ->
+            if (dest.isDirectory()) {
+                injector.injectDir(dest.absolutePath)
+            } else if (dest.name.endsWith('.jar')) {
+                injector.injectJar(dest)
             }
         }
     }
