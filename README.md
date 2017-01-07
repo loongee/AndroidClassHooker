@@ -1,4 +1,3 @@
-# AndroidLogHooker
-# uncompleted!
+# Android class hooker
 
-> Intend to support android 3rd party logger at compiling phrase, without modify any old code!
+> Intend to replace function call to custom classes' member function at compiling phrase, without modify any old code!
