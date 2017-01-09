@@ -15,7 +15,7 @@ public class HookerTransform extends Transform {
 
     @Override
     String getName() {
-        return "Hooker"
+        return "hooker"
     }
 
     @Override
@@ -30,7 +30,7 @@ public class HookerTransform extends Transform {
 
     @Override
     boolean isIncremental() {
-        return true
+        return false
     }
 
     @Override
@@ -83,5 +83,6 @@ public class HookerTransform extends Transform {
                 injector.injectJar(dest)
             }
         }
+        injector.releaseAll()
     }
 }

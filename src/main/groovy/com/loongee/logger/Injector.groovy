@@ -1,6 +1,7 @@
 package com.loongee.logger
 
 import javassist.CannotCompileException
+import javassist.ClassPath
 import javassist.ClassPool
 import javassist.CtBehavior
 import javassist.CtClass
@@ -12,6 +13,8 @@ import java.util.zip.ZipFile
 
 public class Injector {
     private ClassPool pool = ClassPool.getDefault()
+
+    private Map<String, ClassPath> clsPaths = [:]
 
     private SubExprEditor editor = new SubExprEditor();
 
@@ -38,11 +41,18 @@ public class Injector {
     }
 
     public void addDir(String path) {
-        pool.appendClassPath(path)
+        clsPaths.put(path, pool.appendClassPath(path))
     }
 
     public void addJar(String jarPath) {
-        pool.insertClassPath(jarPath)
+        clsPaths.put(jarPath, pool.insertClassPath(jarPath))
+    }
+
+    public void releaseAll() {
+        clsPaths.values().each { ClassPath clsPath ->
+            pool.removeClassPath(clsPath)
+        }
+        clsPaths.clear()
     }
 
     public void injectDir(String path) {
@@ -75,18 +85,25 @@ public class Injector {
                 }
 
                 c.getDeclaredBehaviors().each { CtBehavior behavior ->
-                    println behavior.getLongName()
+                    if (HookerConfigExtension.getDefault().verbose) {
+                        println behavior.getLongName()
+                    }
                     behavior.instrument(editor)
                 }
 
-                c.writeFile()
-                println(filePath + '---> [modified]')
+                c.writeFile(path)
+                if (HookerConfigExtension.getDefault().verbose) {
+                    println(filePath + '---> [modified]')
+                }
             }
         }
     }
 
     public void injectJar(File jarFile) {
         ZipFile zipFile = new ZipFile(jarFile.absolutePath)
+        File cacheDir = new File(jarFile.absolutePath + ".cache/");
+        cacheDir.mkdirs();
+        ZipUtil.unzipToFolder(jarFile.absolutePath, cacheDir.absolutePath)
         zipFile.entries().each { ZipEntry entry ->
             if (entry.name.endsWith(".class")) {
                 if (HookerConfigExtension.getDefault().verbose) {
@@ -105,13 +122,20 @@ public class Injector {
                 }
 
                 c.getDeclaredBehaviors().each { CtBehavior behavior ->
-                    println behavior.getLongName()
+                    if (HookerConfigExtension.getDefault().verbose) {
+                        println behavior.getLongName()
+                    }
                     behavior.instrument(editor)
                 }
 
-                c.writeFile()
+                c.writeFile(cacheDir.absolutePath)
             }
         }
+        zipFile.close()
+        pool.removeClassPath(clsPaths[jarFile.absolutePath])
+        ZipUtil.zipFolder(cacheDir.absolutePath, jarFile.absolutePath)
+        addJar(jarFile.absolutePath)
+        Utils.deleteDir(cacheDir)
     }
 
     private static boolean inWhiteList(String className) {
