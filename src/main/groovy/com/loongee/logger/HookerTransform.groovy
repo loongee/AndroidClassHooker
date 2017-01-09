@@ -51,9 +51,7 @@ public class HookerTransform extends Transform {
                         directoryInput.scopes,
                         Format.DIRECTORY)
 
-                if (HookerConfigExtension.getDefault().verbose) {
-                    println(directoryInput.file.absolutePath + '---->' + dest.absolutePath)
-                }
+                Utils.printVerboseMsg(directoryInput.file.absolutePath + '---->' + dest.absolutePath)
                 FileUtils.copyDirectory(directoryInput.file, dest)
                 pathList.add(dest)
                 injector.addDir(dest.absolutePath)
@@ -69,9 +67,7 @@ public class HookerTransform extends Transform {
                 def dest = transformInvocation.getOutputProvider().getContentLocation(jarName + md5Name,
                         jarInput.contentTypes, jarInput.scopes, Format.JAR)
                 FileUtils.copyFile(jarInput.file, dest)
-                if (HookerConfigExtension.getDefault().verbose) {
-                    println(jarInput.file.absolutePath + '---->' + dest)
-                }
+                Utils.printVerboseMsg(jarInput.file.absolutePath + '---->' + dest)
                 pathList.add(dest)
                 injector.addJar(dest.absolutePath)
             }

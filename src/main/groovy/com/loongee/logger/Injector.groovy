@@ -21,17 +21,13 @@ public class Injector {
     private class SubExprEditor extends ExprEditor {
         @Override
         void edit(MethodCall m) throws CannotCompileException {
-            if (HookerConfigExtension.getDefault().verbose) {
-                println('    ' + getFullSignature(m))
-            }
+            Utils.printVerboseMsg('    ' + getFullSignature(m))
             String signature = m.getClassName();
             def editorRule = HookerConfigExtension.getDefault().editorRule
             if (editorRule.containsKey(signature)) {
                 String replaceTo = "\$_=" + editorRule.get(signature) + "." + m.getMethodName() + "(\$\$);"
                 m.replace(replaceTo)
-                if (HookerConfigExtension.getDefault().verbose) {
-                    println('        replace to: ' + replaceTo)
-                }
+                Utils.printVerboseMsg('        replace to: ' + replaceTo)
             }
         }
 
@@ -73,9 +69,7 @@ public class Injector {
                 int end = filePath.length() - 6; // '.class' == 6
                 String className = filePath.substring(path.length() + 1, end).replace('\\', '.').replace('/', '.')
                 if (inWhiteList(className)) {
-                    if (HookerConfigExtension.getDefault().verbose) {
-                        println '[white list skip] ' + className
-                    }
+                    Utils.printVerboseMsg '[white list skip] ' + className
                     return
                 }
                 CtClass c = pool.getCtClass(className)
@@ -85,16 +79,12 @@ public class Injector {
                 }
 
                 c.getDeclaredBehaviors().each { CtBehavior behavior ->
-                    if (HookerConfigExtension.getDefault().verbose) {
-                        println behavior.getLongName()
-                    }
+                    Utils.printVerboseMsg behavior.getLongName()
                     behavior.instrument(editor)
                 }
 
                 c.writeFile(path)
-                if (HookerConfigExtension.getDefault().verbose) {
-                    println(filePath + '---> [modified]')
-                }
+                Utils.printVerboseMsg(filePath + '---> [modified]')
             }
         }
     }
@@ -106,14 +96,10 @@ public class Injector {
         ZipUtil.unzipToFolder(jarFile.absolutePath, cacheDir.absolutePath)
         zipFile.entries().each { ZipEntry entry ->
             if (entry.name.endsWith(".class")) {
-                if (HookerConfigExtension.getDefault().verbose) {
-                    println('jar entry: ' + entry.name)
-                }
+                Utils.printVerboseMsg('jar entry: ' + entry.name)
                 String className = entry.name.substring(0, entry.name.length() - 6).replace('/', '.')
                 if (inWhiteList(className)) {
-                    if (HookerConfigExtension.getDefault().verbose) {
-                        println('white list ignore: ' + className)
-                    }
+                    Utils.printVerboseMsg('white list ignore: ' + className)
                     return
                 }
                 CtClass c = pool.getCtClass(className)
@@ -122,9 +108,7 @@ public class Injector {
                 }
 
                 c.getDeclaredBehaviors().each { CtBehavior behavior ->
-                    if (HookerConfigExtension.getDefault().verbose) {
-                        println behavior.getLongName()
-                    }
+                    Utils.printVerboseMsg behavior.getLongName()
                     behavior.instrument(editor)
                 }
 

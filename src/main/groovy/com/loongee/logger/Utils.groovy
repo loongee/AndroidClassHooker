@@ -10,4 +10,10 @@ public class Utils {
         }
         file.delete();
     }
+
+    public static void printVerboseMsg(msg) {
+        if (HookerConfigExtension.getDefault().verbose) {
+            println(msg)
+        }
+    }
 }
